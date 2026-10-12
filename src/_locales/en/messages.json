@@ -3,7 +3,7 @@
   "message": "YouTube Wheel Speed & Seek"
  },
  "extDesc": {
-  "message": "Hold a mouse button and scroll on YouTube to change speed or seek. Disables press-and-hold 2x."
+  "message": "Hold a mouse button and scroll to change speed or seek on YouTube and other video sites; disables hold-for-2x."
  },
  "title": {
   "message": "Wheel control"

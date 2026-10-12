@@ -1,0 +1,40 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;height:3000px}#movie_player{position:relative;width:800px;height:450px;background:#000;margin:20px}
+video{width:100%;height:100%}.ytp-chrome-bottom{position:absolute;bottom:0;left:0;right:0;height:40px;background:#333}.ytp-contextmenu{position:absolute;display:none;background:#222;color:#fff;width:200px;height:100px}</style></head>
+<body><div id="movie_player" class="html5-video-player"><div class="html5-video-container"><video src="tone.wav" muted loop></video></div>
+<div class="ytp-chrome-bottom"><div class="ytp-progress-bar" style="height:6px;background:#f00"></div><button class="ytp-play-button">play</button></div><div class="ytp-contextmenu">menu</div></div>
+<script>
+// Model of YouTube base.js (see ff-test/base.pretty.js):
+//  - click handler lsT ignores the click when Rd.RI is true; mousedown handler tmM resets Rd.RI=false and
+//    publishes "rootnodemousedown" (speedmaster keeps a reference Z = Rd).
+//  - drag helper g.mj: mousedown on root -> listens document mousemove/mouseup; speedmaster rB: dragstart starts
+//    a 500 ms timer (Nr -> setPlaybackRate(2), Z.RI = true); dragmove >= 10px or dragend -> eq() cancels/restores.
+//  - fine scrubbing (HU) on the progress bar sets Vk.RI = true (Vk = last rootnodemousedown payload).
+//  - spacebar hold (web_speedmaster_spacebar_control) also triggers Nr -> Z.RI = true.
+const P = document.getElementById("movie_player"), v = P.querySelector("video"), menu = P.querySelector(".ytp-contextmenu");
+window.log = []; const Rd = { RI: false }; let Z = null, timer = 0, sm = false, prev = 1, start = null;
+function Nr() { sm = true; prev = v.playbackRate; v.playbackRate = 2; if (Z) Z.RI = true; log.push("speedmaster-on"); }
+function eq() { clearTimeout(timer); timer = 0; document.removeEventListener("mousemove", mv); document.removeEventListener("mouseup", up);
+  if (sm) { sm = false; v.playbackRate = prev; log.push("speedmaster-off"); } }
+function mv(e) { if (start && Math.hypot(e.pageX - start[0], e.pageY - start[1]) >= 10) { start = null; eq(); } }
+function up() { eq(); }
+// tmM
+P.addEventListener("mousedown", () => { Rd.RI = false; Z = Rd; window.vk = Rd; });
+// g.mj drag helper + rB
+P.addEventListener("mousedown", (e) => { if (e.button !== 0) return; log.push("yt-mousedown");
+  start = [e.pageX, e.pageY]; clearTimeout(timer); timer = setTimeout(Nr, 500);
+  document.addEventListener("mousemove", mv); document.addEventListener("mouseup", up); });
+P.addEventListener("touchstart", () => { log.push("yt-touchstart"); timer = setTimeout(Nr, 500); document.addEventListener("touchend", eq, { once: true }); });
+// fine scrubbing on progress bar
+P.querySelector(".ytp-progress-bar").addEventListener("mousedown", () => { const m = () => { if (window.vk) window.vk.RI = true; }; document.addEventListener("mousemove", m);
+  document.addEventListener("mouseup", () => document.removeEventListener("mousemove", m), { once: true }); });
+// spacebar hold
+let spT = 0; document.addEventListener("keydown", (e) => { if (e.code === "Space" && !e.repeat) { e.preventDefault(); spT = setTimeout(Nr, 500); } });
+document.addEventListener("keyup", (e) => { if (e.code === "Space") { const wasSm = sm; clearTimeout(spT); eq(); if (!wasSm) { v.paused ? v.play() : v.pause(); } } });
+// lsT
+P.addEventListener("click", (e) => { if (e.target.closest(".ytp-chrome-bottom,.ytp-contextmenu")) return;
+  if (Rd.RI) { log.push("yt-click-ignored(RI)"); return; }
+  log.push("yt-click"); v.paused ? v.play() : v.pause(); menu.style.display = "none"; });
+P.addEventListener("dblclick", () => { log.push("yt-dblclick"); window.fsToggles = (window.fsToggles || 0) + 1; });
+P.addEventListener("contextmenu", (e) => { e.preventDefault(); log.push("yt-contextmenu" + (e.isTrusted ? "" : "(synthetic)")); menu.style.display = "block"; });
+P.querySelector(".ytp-play-button").addEventListener("click", () => { log.push("yt-button"); v.paused ? v.play() : v.pause(); });
+</script></body></html>

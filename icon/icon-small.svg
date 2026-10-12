@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6e0610"/><stop offset="1" stop-color="#43000a"/></linearGradient></defs><rect x="0" y="0" width="128" height="128" rx="24" fill="url(#g)"/><mask id="m-28fff" maskUnits="userSpaceOnUse" x="0" y="0" width="128" height="128"><rect width="128" height="128" fill="#fff"/><g transform="translate(79 40) rotate(-28)"><rect x="-31.0" y="-15.0" width="62" height="30" rx="15.0" fill="#000"/></g></mask><g mask="url(#m-28fff)"><path d="M89.7 55.6 A37 37 0 1 1 57.0 36.0" fill="none" stroke="#fff" stroke-width="15" stroke-linecap="round"/></g><g transform="translate(79 40) rotate(-28)">
+  <clipPath id="pc-28"><rect x="-27.0" y="-11.0" width="54" height="22" rx="11.0"/></clipPath>
+  <g stroke="none" fill="none"><rect x="-27.0" y="-11.0" width="54" height="22" rx="11.0" fill="none"/></g>
+  <g fill="#fff"><rect x="-27.0" y="-11.0" width="54" height="22" rx="11.0"/></g>
+  <g clip-path="url(#pc-28)" stroke="#590107" stroke-width="2.6" stroke-linecap="round"><path d="M-12 1 L-7 11.0"/><path d="M-6 1 L-1 11.0"/><path d="M0 1 L5 11.0"/><path d="M6 1 L11 11.0"/><path d="M12 1 L17 11.0"/><path d="M18 1 L23 11.0"/></g>
+</g></svg>

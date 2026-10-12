@@ -1,9 +1,9 @@
 {
  "extName": {
-  "message": "YouTube ホイール速度・シーク"
+  "message": "YouTube Wheel Speed & Seek"
  },
  "extDesc": {
-  "message": "YouTubeでボタンを押しながらホイール操作で再生速度とシークを調整。長押し2倍速を無効化。"
+  "message": "ボタンを押しながらホイールでYouTubeなどの動画の再生速度とシークを操作し、長押し2倍速を無効化します。"
  },
  "title": {
   "message": "ホイール操作"

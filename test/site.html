@@ -1,0 +1,12 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;height:3000px}#wrap{position:relative;width:800px;height:450px;margin:20px;background:#000}
+video{width:100%;height:100%}#cover{position:absolute;inset:0}#small{width:160px;height:90px;position:absolute;left:850px;top:20px}</style></head>
+<body><div id="wrap"><video id="main" src="tone.wav" muted loop></video><div id="cover"></div></div><video id="small" src="tone.wav" muted></video>
+<script>
+// Generic site. ?fight=1 emulates nicovideo-like players: reset rate on ratechange + poll every 500ms.
+const v = document.getElementById("main"); window.log = []; window.pageWanted = 1; window.fixes = 0;
+document.getElementById("cover").addEventListener("click", () => { log.push("site-click"); v.paused ? v.play() : v.pause(); });
+document.getElementById("cover").addEventListener("contextmenu", (e) => { e.preventDefault(); log.push("site-contextmenu" + (e.isTrusted ? "" : "(synthetic)")); });
+v.addEventListener("ratechange", () => { log.push("site-ratechange:" + v.playbackRate);
+  if (location.search.includes("fight") && v.playbackRate !== pageWanted) { fixes++; v.playbackRate = pageWanted; } });
+if (location.search.includes("fight")) setInterval(() => { if (v.playbackRate !== pageWanted) { fixes++; v.playbackRate = pageWanted; } }, 500);
+</script></body></html>
