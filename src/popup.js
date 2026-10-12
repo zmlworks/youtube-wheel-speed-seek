@@ -104,3 +104,46 @@ chrome.storage.local.get("sites", (s) => { sites = Array.isArray(s && s.sites) ?
     document.getElementById("curDomain").textContent = "(" + curDomain + ")";
   } catch (e) { btn.disabled = true; btn.title = msg("curNA"); }
 })();
+
+// ---- preferred speed buttons ----
+const PRESET_DEFAULT = [1, 2, 3];
+let presets = PRESET_DEFAULT.slice(), curRate = null, activeTabId = null;
+const pStatus = document.getElementById("presetStatus");
+const fmt = (r) => (Math.round(r * 100) / 100) + "x";
+function drawPresets() {
+  document.querySelectorAll("button.preset").forEach((b) => {
+    const r = presets[b.dataset.i]; b.textContent = fmt(r);
+    b.classList.toggle("cur", curRate !== null && Math.abs(curRate - r) < 0.001);
+  });
+  document.querySelectorAll(".presetIn").forEach((el) => { if (document.activeElement !== el) el.value = String(presets[el.dataset.i]); });
+}
+async function toTab(msgObj) {
+  if (activeTabId === null) { const [t] = await api.tabs.query({ active: true, currentWindow: true }); activeTabId = t ? t.id : -1; }
+  if (activeTabId < 0) throw new Error("notab");
+  // top frame first; if it has no video, ask sub frames (only frames with a video answer)
+  const top = await api.tabs.sendMessage(activeTabId, msgObj, { frameId: 0 }).catch(() => null);
+  if (top && top.ok) return top;
+  const any = await api.tabs.sendMessage(activeTabId, Object.assign({ sub: true }, msgObj)).catch(() => null);
+  if (any && any.ok) return any;
+  if (top || any) return { ok: false, reason: "noVideo" };
+  throw new Error("notSupported");
+}
+document.querySelectorAll("button.preset").forEach((b) => b.addEventListener("click", async () => {
+  pStatus.textContent = "";
+  try {
+    const r = await toTab({ type: "ytwc-preset", rate: presets[b.dataset.i] });
+    if (!r.ok) pStatus.textContent = msg(r.reason || "noVideo"); else curRate = r.rate;
+  } catch (e) { pStatus.textContent = msg("notSupported"); }
+  drawPresets();
+}));
+document.querySelectorAll(".presetIn").forEach((el) => el.addEventListener("change", () => {
+  let v = Math.round(Number(el.value) * 100) / 100;
+  if (!(v >= 0.1 && v <= 16)) v = PRESET_DEFAULT[el.dataset.i];
+  presets[el.dataset.i] = v; el.value = String(v);
+  chrome.storage.local.set({ presets: presets.slice() }); drawPresets();
+}));
+chrome.storage.local.get("presets", (s) => {
+  if (s && Array.isArray(s.presets) && s.presets.length === 3) presets = s.presets.map((x, i) => Number(x) > 0 ? Number(x) : PRESET_DEFAULT[i]);
+  drawPresets();
+  toTab({ type: "ytwc-get" }).then((r) => { if (r.ok) { curRate = r.rate; drawPresets(); } }, () => {});
+});

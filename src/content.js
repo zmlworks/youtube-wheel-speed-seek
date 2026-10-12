@@ -223,6 +223,39 @@
     }
   }, optsActive);
 
+  // ---- preset speed buttons in the popup ----
+  let lastVideo = null, lastMove = 0;
+  window.addEventListener("mousemove", (e) => {
+    if (e.timeStamp - lastMove < 150) return; lastMove = e.timeStamp;
+    const s = surface(e.target, e); if (s) lastVideo = s.video;
+  }, { capture: true, passive: true });
+  function targetVideo() {
+    const vis = (v) => { const r = v.getBoundingClientRect(); return r.width > 40 && r.height > 30; };
+    if (lastVideo && lastVideo.isConnected && vis(lastVideo)) return lastVideo;
+    let best = null, score = 0;
+    for (const v of document.querySelectorAll("video")) {
+      if (!vis(v)) continue;
+      const r = v.getBoundingClientRect();
+      const sc = r.width * r.height * (v.paused ? 1 : 4) * (v.readyState > 0 ? 2 : 1);
+      if (sc > score) { score = sc; best = v; }
+    }
+    return best;
+  }
+  try {
+    chrome.runtime.onMessage.addListener((m, sender, send) => {
+      if (!m || (m.type !== "ytwc-preset" && m.type !== "ytwc-get")) return false;
+      const v = targetVideo();
+      if (!v) { if (!m.sub) send({ ok: false, reason: "noVideo" }); return false; }
+      if (m.type === "ytwc-preset") {
+        const r = Number(m.rate);
+        if (!(r > 0)) return false;
+        setRate(v, IS_YT ? playerOf(v) : null, r, r === 1);
+      }
+      send({ ok: true, rate: realRate(v) });
+      return false;
+    });
+  } catch (e) { /* no runtime (tests) */ }
+
   // button released outside the window: drop stale state
   window.addEventListener("mousemove", (e) => {
     if (st.left && !(e.buttons & 1)) st.left = null;

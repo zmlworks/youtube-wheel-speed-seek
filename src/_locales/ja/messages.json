@@ -76,5 +76,17 @@
  },
  "curNA": {
   "message": "このタブでは使えません"
+ },
+ "presets": {
+  "message": "お気に入り速度"
+ },
+ "presetEdit": {
+  "message": "ボタンの速度を編集"
+ },
+ "noVideo": {
+  "message": "このタブに操作できる動画がありません"
+ },
+ "notSupported": {
+  "message": "このタブでは使えません（YouTubeか追加サイトで、タブを再読み込みしてください）"
  }
 }

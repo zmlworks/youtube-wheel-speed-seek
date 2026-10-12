@@ -76,5 +76,17 @@
  },
  "curNA": {
   "message": "Not available on this tab"
+ },
+ "presets": {
+  "message": "Preferred speeds"
+ },
+ "presetEdit": {
+  "message": "Edit button speeds"
+ },
+ "noVideo": {
+  "message": "No video to control in this tab"
+ },
+ "notSupported": {
+  "message": "Not available on this tab (YouTube or an added site; reload the tab)"
  }
 }
