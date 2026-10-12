@@ -5,8 +5,27 @@
 
   const DEFAULTS = {
     enabled: true, speedOn: true, seekOn: true, blockHold: true, middleReset: true,
-    speedStep: 0.25, seekSec: 5, invertSpeed: false, invertSeek: false
+    speedStep: 0.25, seekSec: 5, invertSpeed: false, invertSeek: false, sites: []
   };
+  const HOST = location.hostname;
+  const IS_YT = /(^|\.)(youtube\.com|youtube-nocookie\.com)$/.test(HOST);
+  const hostMatch = (d) => HOST === d || HOST.endsWith("." + d);
+  const strongHere = () => !IS_YT && (cfg.sites || []).some((x) => x && x.strong && hostMatch(x.domain));
+  // native getter captured at start (content scripts see native accessors anyway via Xray)
+  const RATE = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, "playbackRate");
+  const realRate = (v) => RATE.get.call(v);
+
+  // ---- strong mode bridge to MAIN-world script (main.js) ----
+  const TOKEN = Math.random().toString(36).slice(2) + Date.now().toString(36) + Math.random().toString(36).slice(2);
+  function sendInit() { window.dispatchEvent(new CustomEvent("ytwc-init", { detail: TOKEN })); }
+  if (!IS_YT) {
+    window.addEventListener("ytwc-ready", sendInit, { once: true });
+    sendInit();
+  }
+  function strongSet(v, r) {
+    // main.js answers on the element; if it isn't there, fall back to direct set
+    v.dispatchEvent(new CustomEvent("ytwc-" + TOKEN, { detail: JSON.stringify({ op: r === null ? "reset" : "set", rate: r }) }));
+  }
   const MIN_RATE = 0.1, MAX_RATE = 16;
   const cfg = Object.assign({}, DEFAULTS);
   try {
@@ -22,10 +41,24 @@
     "button,a,input,select,textarea,[role=button],[role=slider],.ytp-ad-overlay-container,.ytp-paid-content-overlay";
   const PLAYER_SEL = "#movie_player,.html5-video-player";
 
+  // generic sites: largest <video> whose box contains the point
+  function videoAt(x, y) {
+    let best = null, area = 0;
+    const list = document.querySelectorAll("video");
+    for (const v of list) {
+      const r = v.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom && r.width * r.height > area) { best = v; area = r.width * r.height; }
+    }
+    return best;
+  }
   const playerOf = (t) => (t && t.closest ? t.closest(PLAYER_SEL) : null);
   const videoOf = (p) => (p ? p.querySelector("video") : null);
   // Point is over the "video surface" of a player (not its controls)
-  function surface(t) {
+  function surface(t, e) {
+    if (!IS_YT) {
+      const v = videoAt(e.clientX, e.clientY);
+      return v ? { player: null, video: v } : null;
+    }
     if (!t || !t.closest) return null;
     const p = playerOf(t);
     if (!p) return t.tagName === "VIDEO" ? { player: t.parentElement, video: t } : null;
@@ -46,17 +79,24 @@
 
   // ---- OSD ----
   let osd = null, osdTimer = 0;
-  function showOSD(player, text) {
-    if (!player) return;
-    if (!osd || !osd.isConnected || osd.parentNode !== player) {
+  function showOSD(player, text, video) {
+    let host = player, pos = "absolute", top = "12%", left = "50%";
+    if (!host) {
+      host = document.fullscreenElement || document.body || document.documentElement;
+      pos = "fixed";
+      const r = video.getBoundingClientRect();
+      top = Math.max(0, r.top + r.height * 0.12) + "px"; left = (r.left + r.width / 2) + "px";
+    }
+    if (!osd || !osd.isConnected || osd.parentNode !== host) {
       if (osd) osd.remove();
       osd = document.createElement("div");
       osd.className = "ytwc-osd";
       osd.setAttribute("style", "position:absolute;top:12%;left:50%;transform:translateX(-50%);z-index:2147483647;" +
         "background:rgba(0,0,0,.72);color:#fff;font:600 22px/1.2 'Roboto','Arial',sans-serif;padding:8px 16px;" +
         "border-radius:8px;pointer-events:none;transition:opacity .25s;opacity:0;white-space:nowrap");
-      player.appendChild(osd);
+      host.appendChild(osd);
     }
+    osd.style.position = pos; osd.style.top = top; osd.style.left = left;
     osd.textContent = text;
     osd.style.opacity = "1";
     clearTimeout(osdTimer);
@@ -70,10 +110,11 @@
   };
   const fmtRate = (r) => (Math.round(r * 100) / 100).toString() + "x";
 
-  function setRate(v, player, r) {
+  function setRate(v, player, r, reset) {
     r = Math.min(MAX_RATE, Math.max(MIN_RATE, Math.round(r * 100) / 100));
-    try { v.playbackRate = r; } catch (e) { /* out of range for this browser */ }
-    showOSD(player, fmtRate(v.playbackRate));
+    if (strongHere()) strongSet(v, reset ? null : r);
+    else { try { v.playbackRate = r; } catch (e) { /* out of range for this browser */ } }
+    showOSD(player, fmtRate(realRate(v)), v);
   }
 
   // wheel delta -> -1/0/+1 notches (accumulates touchpad pixel deltas)
@@ -96,31 +137,31 @@
     if (e.button === 1 && st.left && cfg.middleReset && cfg.speedOn) {
       e.preventDefault(); e.stopImmediatePropagation();
       st.left.used = true;
-      setRate(st.left.video, st.left.player, 1);
+      setRate(st.left.video, st.left.player, 1, true);
       return;
     }
-    const s = surface(e.target);
+    const s = surface(e.target, e);
     if (!s) return;
     if (e.button === 0) {
       st.left = { player: s.player, video: s.video, used: false, t0: e.timeStamp };
       // YouTube starts its 500 ms "hold = 2x" timer from a mousedown listener on the player root.
       // Swallowing mousedown here (window, capture) means that listener never runs. The default
       // action is NOT prevented, so focus/click/dblclick still happen normally.
-      if (cfg.blockHold) e.stopImmediatePropagation();
+      if (IS_YT && cfg.blockHold) e.stopImmediatePropagation();
     } else if (e.button === 2) {
       st.right = { player: s.player, video: s.video, used: false, deferred: false, target: e.target, x: e.clientX, y: e.clientY, sx: e.screenX, sy: e.screenY };
     }
   }, opts);
 
   window.addEventListener("touchstart", (e) => {
-    if (cfg.enabled && cfg.blockHold && e.isTrusted && surface(e.target)) e.stopImmediatePropagation();
+    if (IS_YT && cfg.enabled && cfg.blockHold && e.isTrusted && surface(e.target, e)) e.stopImmediatePropagation();
   }, { capture: true, passive: true });
 
   window.addEventListener("mouseup", (e) => {
     if (!e.isTrusted) return;
     if (e.button === 0 && st.left) {
       // wheel used, or a long press (would have been YouTube's 2x hold): don't let the click pause
-      if (st.left.used || (cfg.blockHold && e.timeStamp - st.left.t0 > 500)) st.suppressClickUntil = e.timeStamp + 600;
+      if (st.left.used || (IS_YT && cfg.blockHold && e.timeStamp - st.left.t0 > 500)) st.suppressClickUntil = e.timeStamp + 600;
       st.left = null;
     } else if (e.button === 2 && st.right) {
       const r = st.right;
@@ -166,19 +207,19 @@
       st.left.used = true;
       const dir = (cfg.invertSpeed ? 1 : -1) * n; // default: wheel up (n=-1) = faster
       const v = st.left.video, step = Number(cfg.speedStep) || 0.25;
-      let r = v.playbackRate + dir * step;
+      let r = realRate(v) + dir * step;
       r = Math.round(r / step) * step || (dir > 0 ? step : MIN_RATE);
       setRate(v, st.left.player, r);
     } else if (rightHeld && cfg.seekOn) {
       e.preventDefault(); e.stopImmediatePropagation();
       const n = notch(e); if (!n) return;
       st.right.used = true;
-      const dir = (cfg.invertSeek ? -1 : 1) * n; // default: wheel down = forward
+      const dir = (cfg.invertSeek ? 1 : -1) * n; // default (v1.1): wheel up = forward
       const v = st.right.video, sec = Number(cfg.seekSec) || 5;
       const dur = isFinite(v.duration) ? v.duration : Infinity;
       const t = Math.min(Math.max(0, v.currentTime + dir * sec), Math.max(0, dur - 0.1));
       v.currentTime = t;
-      showOSD(st.right.player, (dir > 0 ? "▶▶ " : "◀◀ ") + fmtTime(t) + (isFinite(dur) ? " / " + fmtTime(dur) : ""));
+      showOSD(st.right.player, (dir > 0 ? "▶▶ " : "◀◀ ") + fmtTime(t) + (isFinite(dur) ? " / " + fmtTime(dur) : ""), v);
     }
   }, optsActive);
 

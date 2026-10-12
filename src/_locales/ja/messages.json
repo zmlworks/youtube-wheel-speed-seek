@@ -27,7 +27,7 @@
   "message": "速度のホイール方向を反転（標準: 上で速く）"
  },
  "invertSeek": {
-  "message": "シークのホイール方向を反転（標準: 下で進む）"
+  "message": "シークのホイール方向を反転（標準: 上で進む）"
  },
  "blockHold": {
   "message": "YouTubeの長押し2倍速を無効化"
@@ -37,5 +37,44 @@
  },
  "note": {
   "message": "動画の上でボタンを押したままホイールを回します。"
+ },
+ "sites": {
+  "message": "追加サイト（YouTube以外）"
+ },
+ "addCurrent": {
+  "message": "現在のサイトを追加"
+ },
+ "add": {
+  "message": "追加"
+ },
+ "del": {
+  "message": "削除"
+ },
+ "strong": {
+  "message": "強力モード"
+ },
+ "strongHelp": {
+  "message": "強力モード: サイトが再生速度を元に戻す場合に、速度変更をサイトから隠します。"
+ },
+ "domainPh": {
+  "message": "例: nicovideo.jp"
+ },
+ "permDenied": {
+  "message": "権限が許可されませんでした"
+ },
+ "badDomain": {
+  "message": "ドメインが正しくありません"
+ },
+ "ytBuiltin": {
+  "message": "YouTubeは標準で対象です"
+ },
+ "noSites": {
+  "message": "なし"
+ },
+ "reloadNote": {
+  "message": "追加・変更後はそのタブを再読み込みしてください。"
+ },
+ "curNA": {
+  "message": "このタブでは使えません"
  }
 }

@@ -27,7 +27,7 @@
   "message": "Invert speed direction (default: up = faster)"
  },
  "invertSeek": {
-  "message": "Invert seek direction (default: down = forward)"
+  "message": "Invert seek direction (default: up = forward)"
  },
  "blockHold": {
   "message": "Disable YouTube press-and-hold 2x"
@@ -37,5 +37,44 @@
  },
  "note": {
   "message": "Hold a button over the video and turn the wheel."
+ },
+ "sites": {
+  "message": "Extra sites (besides YouTube)"
+ },
+ "addCurrent": {
+  "message": "Add current site"
+ },
+ "add": {
+  "message": "Add"
+ },
+ "del": {
+  "message": "Remove"
+ },
+ "strong": {
+  "message": "Strong mode"
+ },
+ "strongHelp": {
+  "message": "Strong mode: hides speed changes from sites that reset the playback rate."
+ },
+ "domainPh": {
+  "message": "e.g. nicovideo.jp"
+ },
+ "permDenied": {
+  "message": "Permission was not granted"
+ },
+ "badDomain": {
+  "message": "Invalid domain"
+ },
+ "ytBuiltin": {
+  "message": "YouTube is built in"
+ },
+ "noSites": {
+  "message": "None"
+ },
+ "reloadNote": {
+  "message": "Reload the tab after adding or changing a site."
+ },
+ "curNA": {
+  "message": "Not available on this tab"
  }
 }

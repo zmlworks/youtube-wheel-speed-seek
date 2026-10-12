@@ -12,6 +12,14 @@ label { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 label.num { justify-content: space-between; padding-left: 24px; }
 input[type=number], select { width: 72px; background: #24221f; color: #f3efe6; border: 1px solid #4a463f; border-radius: 4px; padding: 2px 4px; }
 hr { border: 0; border-top: 1px solid #333; margin: 2px 0; width: 100%; }
+h2 { margin: 0; font-size: 14px; }
+button { background: #2d2a25; color: #f3efe6; border: 1px solid #4a463f; border-radius: 4px; padding: 4px 8px; font: inherit; font-size: 12px; cursor: pointer; }
+button:disabled { opacity: .5; cursor: default; }
+.row { display: flex; gap: 6px; } .row input { flex: 1; background: #24221f; color: #f3efe6; border: 1px solid #4a463f; border-radius: 4px; padding: 3px 6px; }
+ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+li { display: flex; align-items: center; gap: 8px; font-size: 13px; background: #1e1c19; border-radius: 4px; padding: 4px 6px; }
+li .d { flex: 1; overflow: hidden; text-overflow: ellipsis; } li label { font-size: 12px; }
+.status { color: #ffb36b; min-height: 0; }
 p { margin: 0; font-size: 11px; color: #b8b1a3; }
 </style>
 </head>
@@ -32,6 +40,14 @@ p { margin: 0; font-size: 11px; color: #b8b1a3; }
   <hr />
   <label><input type="checkbox" id="blockHold" /><span data-i18n="blockHold"></span></label>
   <p data-i18n="note"></p>
+  <hr />
+  <h2 data-i18n="sites"></h2>
+  <button id="addCurrent" type="button"><span data-i18n="addCurrent"></span> <span id="curDomain"></span></button>
+  <div class="row"><input type="text" id="domainIn" /><button id="addBtn" type="button" data-i18n="add"></button></div>
+  <ul id="siteList"></ul>
+  <p id="status" class="status"></p>
+  <p data-i18n="strongHelp"></p>
+  <p data-i18n="reloadNote"></p>
 </main>
 <script src="popup.js"></script>
 </body>
