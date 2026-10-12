@@ -5,61 +5,50 @@
 <title>YouTube Wheel</title>
 <style>
 :root { color-scheme: dark; font-family: "IPA Pゴシック", "Hiragino Sans", sans-serif; }
-body { margin: 0; width: 320px; background: #141311; color: #f3efe6; }
-main { padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 9px; }
-h1 { margin: 0; font-size: 18px; font-weight: 700; }
-label { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-label.num { justify-content: space-between; padding-left: 24px; }
-input[type=number], select { width: 72px; background: #24221f; color: #f3efe6; border: 1px solid #4a463f; border-radius: 4px; padding: 2px 4px; }
-hr { border: 0; border-top: 1px solid #333; margin: 2px 0; width: 100%; }
-h2 { margin: 0; font-size: 14px; }
-button { background: #2d2a25; color: #f3efe6; border: 1px solid #4a463f; border-radius: 4px; padding: 4px 8px; font: inherit; font-size: 12px; cursor: pointer; }
-button:disabled { opacity: .5; cursor: default; }
-.row { display: flex; gap: 6px; } .row input { flex: 1; background: #24221f; color: #f3efe6; border: 1px solid #4a463f; border-radius: 4px; padding: 3px 6px; }
-ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-li { display: flex; align-items: center; gap: 8px; font-size: 13px; background: #1e1c19; border-radius: 4px; padding: 4px 6px; }
-li .d { flex: 1; overflow: hidden; text-overflow: ellipsis; } li label { font-size: 12px; }
-.presets { display: flex; gap: 6px; } .presets > * { flex: 1; width: 0; }
-button.preset { font-size: 15px; font-weight: 700; padding: 7px 0; }
-button.preset.cur { background: #d4145a; border-color: #ff6a3d; }
-summary { font-size: 12px; color: #b8b1a3; cursor: pointer; margin-bottom: 6px; }
-.presetIn { background: #24221f; color: #f3efe6; border: 1px solid #4a463f; border-radius: 4px; padding: 3px 4px; }
+body { margin: 0; width: 300px; background: #141311; color: #f3efe6; font-size: 13px; }
+main { padding: 10px 12px; display: flex; flex-direction: column; gap: 7px; }
+.row { display: flex; align-items: center; gap: 6px; }
+.grow { flex: 1; }
+label { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+[hidden] { display: none !important; } #speedStep, #seekSec { width: 84px; flex: none; } select, input[type=number], input[type=text] { background: #24221f; color: #f3efe6; border: 1px solid #4a463f; border-radius: 4px; padding: 2px 4px; font: inherit; }
+input[type=number] { width: 0; flex: 1; }
+input[type=text] { flex: 1; min-width: 0; }
+button { background: #2d2a25; color: #f3efe6; border: 1px solid #4a463f; border-radius: 4px; padding: 3px 8px; font: inherit; cursor: pointer; }
+button:disabled { opacity: .45; cursor: default; }
+#lang { font-size: 11px; padding: 2px 6px; font-weight: 700; }
+.presets > button { flex: 1; font-size: 15px; font-weight: 700; padding: 6px 0; }
+button.preset.cur { background: #8f1d2a; border-color: #d9485a; }
+#editP { flex: 0 0 auto; padding: 6px 7px; font-size: 13px; }
+hr { border: 0; border-top: 1px solid #33302b; margin: 1px 0; width: 100%; }
+ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+li { display: flex; align-items: center; gap: 6px; background: #1e1c19; border-radius: 4px; padding: 3px 6px; }
+li .d { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+li button { padding: 0 7px; }
+li.empty { color: #8a8478; background: none; padding: 0; }
+.status { margin: 0; color: #ffb36b; font-size: 12px; }
 .status:empty { display: none; }
-.status { color: #ffb36b; min-height: 0; }
-p { margin: 0; font-size: 11px; color: #b8b1a3; }
 </style>
 </head>
 <body>
 <main>
-  <h1 data-i18n="title"></h1>
-  <label><input type="checkbox" id="enabled" /><span data-i18n="enabled"></span></label>
-  <h2 data-i18n="presets"></h2>
-  <div class="presets"><button type="button" class="preset" data-i="0"></button><button type="button" class="preset" data-i="1"></button><button type="button" class="preset" data-i="2"></button></div>
-  <details><summary data-i18n="presetEdit"></summary>
-    <div class="presets"><input type="number" class="presetIn" data-i="0" min="0.1" max="16" step="0.05" /><input type="number" class="presetIn" data-i="1" min="0.1" max="16" step="0.05" /><input type="number" class="presetIn" data-i="2" min="0.1" max="16" step="0.05" /></div>
-  </details>
+  <div class="row"><label class="grow"><input type="checkbox" id="enabled" /><span data-t="enabled"></span></label><button id="lang" type="button"></button></div>
+  <div class="row presets"><button type="button" class="preset" data-i="0"></button><button type="button" class="preset" data-i="1"></button><button type="button" class="preset" data-i="2"></button><button type="button" id="editP">✎</button></div>
+  <div class="row" id="presetEdit" hidden><input type="number" class="presetIn" data-i="0" min="0.1" max="16" step="0.05" /><input type="number" class="presetIn" data-i="1" min="0.1" max="16" step="0.05" /><input type="number" class="presetIn" data-i="2" min="0.1" max="16" step="0.05" /></div>
   <p id="presetStatus" class="status"></p>
   <hr />
-  <label><input type="checkbox" id="speedOn" /><span data-i18n="speedOn"></span></label>
-  <label class="num"><span data-i18n="speedStep"></span>
-    <select id="speedStep"><option>0.05</option><option>0.1</option><option>0.25</option><option>0.5</option></select></label>
-  <label><input type="checkbox" id="invertSpeed" /><span data-i18n="invertSpeed"></span></label>
-  <label><input type="checkbox" id="middleReset" /><span data-i18n="middleReset"></span></label>
+  <div class="row"><select id="speedStep"><option value="0.05">±0.05</option><option value="0.1">±0.1</option><option value="0.25">±0.25</option><option value="0.5">±0.5</option></select>
+    <label><input type="checkbox" id="speedOn" /><span data-t="speedOn"></span></label>
+    <span class="grow"></span><label><input type="checkbox" id="invertSpeed" /><span data-t="invert"></span></label></div>
+  <div class="row"><select id="seekSec"></select>
+    <label><input type="checkbox" id="seekOn" /><span data-t="seekOn"></span></label>
+    <span class="grow"></span><label><input type="checkbox" id="invertSeek" /><span data-t="invert"></span></label></div>
+  <div class="row"><label><input type="checkbox" id="middleReset" /><span data-t="middleReset"></span></label></div>
+  <div class="row"><label><input type="checkbox" id="blockHold" /><span data-t="blockHold"></span></label></div>
   <hr />
-  <label><input type="checkbox" id="seekOn" /><span data-i18n="seekOn"></span></label>
-  <label class="num"><span data-i18n="seekSec"></span><input type="number" id="seekSec" min="1" max="600" step="1" /></label>
-  <label><input type="checkbox" id="invertSeek" /><span data-i18n="invertSeek"></span></label>
-  <hr />
-  <label><input type="checkbox" id="blockHold" /><span data-i18n="blockHold"></span></label>
-  <p data-i18n="note"></p>
-  <hr />
-  <h2 data-i18n="sites"></h2>
-  <button id="addCurrent" type="button"><span data-i18n="addCurrent"></span> <span id="curDomain"></span></button>
-  <div class="row"><input type="text" id="domainIn" /><button id="addBtn" type="button" data-i18n="add"></button></div>
+  <div class="row"><button id="addCurrent" type="button" class="grow"></button></div>
+  <div class="row"><input type="text" id="domainIn" /><button id="addBtn" type="button" data-t="add"></button></div>
   <ul id="siteList"></ul>
   <p id="status" class="status"></p>
-  <p data-i18n="strongHelp"></p>
-  <p data-i18n="reloadNote"></p>
 </main>
 <script src="popup.js"></script>
 </body>

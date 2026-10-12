@@ -78,7 +78,7 @@
   };
 
   // ---- OSD ----
-  let osd = null, osdTimer = 0;
+  let osd = null, osdTimer = 0, seekAcc = 0;
   function showOSD(player, text, video) {
     let host = player, pos = "absolute", top = "12%", left = "50%";
     if (!host) {
@@ -100,20 +100,15 @@
     osd.textContent = text;
     osd.style.opacity = "1";
     clearTimeout(osdTimer);
-    osdTimer = setTimeout(() => { if (osd) osd.style.opacity = "0"; }, 900);
+    osdTimer = setTimeout(() => { if (osd) osd.style.opacity = "0"; seekAcc = 0; }, 900);
   }
-  const fmtTime = (s) => {
-    s = Math.max(0, Math.floor(s));
-    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60;
-    const pad = (n) => String(n).padStart(2, "0");
-    return h ? `${h}:${pad(m)}:${pad(x)}` : `${m}:${pad(x)}`;
-  };
   const fmtRate = (r) => (Math.round(r * 100) / 100).toString() + "x";
 
   function setRate(v, player, r, reset) {
     r = Math.min(MAX_RATE, Math.max(MIN_RATE, Math.round(r * 100) / 100));
     if (strongHere()) strongSet(v, reset ? null : r);
     else { try { v.playbackRate = r; } catch (e) { /* out of range for this browser */ } }
+    seekAcc = 0;
     showOSD(player, fmtRate(realRate(v)), v);
   }
 
@@ -217,9 +212,12 @@
       const dir = (cfg.invertSeek ? 1 : -1) * n; // default (v1.1): wheel up = forward
       const v = st.right.video, sec = Number(cfg.seekSec) || 5;
       const dur = isFinite(v.duration) ? v.duration : Infinity;
-      const t = Math.min(Math.max(0, v.currentTime + dir * sec), Math.max(0, dur - 0.1));
+      const cur = v.currentTime;
+      const t = Math.min(Math.max(0, cur + dir * sec), Math.max(0, dur - 0.1));
       v.currentTime = t;
-      showOSD(st.right.player, (dir > 0 ? "▶▶ " : "◀◀ ") + fmtTime(t) + (isFinite(dur) ? " / " + fmtTime(dur) : ""), v);
+      // net seek amount while the OSD stays visible: +5s, +10s, ... reverse subtracts
+      seekAcc = Math.round((seekAcc + (t - cur)) * 10) / 10;
+      showOSD(st.right.player, (seekAcc > 0 ? "+" : seekAcc < 0 ? "-" : "±") + Math.abs(seekAcc) + "s", v);
     }
   }, optsActive);
 

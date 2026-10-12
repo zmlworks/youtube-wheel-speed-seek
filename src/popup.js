@@ -1,35 +1,73 @@
 "use strict";
+const api = typeof browser !== "undefined" ? browser : chrome;
 const DEFAULTS = {
   enabled: true, speedOn: true, seekOn: true, blockHold: true, middleReset: true,
   speedStep: 0.25, seekSec: 5, invertSpeed: false, invertSeek: false
 };
-const msg = (k) => (chrome.i18n && chrome.i18n.getMessage(k)) || k;
-document.documentElement.lang = (chrome.i18n && chrome.i18n.getUILanguage && chrome.i18n.getUILanguage().startsWith("en")) ? "en" : "ja";
-document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = msg(el.dataset.i18n); });
-document.title = msg("extName");
+// Own string table so the language can be switched at runtime (_locales cannot).
+const STR = {
+  ja: { enabled: "有効", speedOn: "左: 速度", seekOn: "右: シーク", invert: "反転", sec: "秒",
+    middleReset: "左＋中クリックで1x", blockHold: "長押し2倍速を無効", addCurrent: "＋ このサイト", add: "追加", strong: "強力",
+    del: "削除", domainPh: "ドメイン（例: nicovideo.jp）", noSites: "追加サイトなし", permDenied: "権限が許可されませんでした",
+    badDomain: "ドメインが正しくありません", ytBuiltin: "YouTubeは標準で対象です", curNA: "このタブでは使えません",
+    noVideo: "動画がありません", notSupported: "このタブでは使えません（再読み込みで有効になる場合があります）",
+    strongTip: "強力モード: サイトが速度を戻す場合に使用", reload: "タブを再読み込みすると有効になります" },
+  en: { enabled: "Enabled", speedOn: "Left: speed", seekOn: "Right: seek", invert: "Invert", sec: " s",
+    middleReset: "Left+middle click = 1x", blockHold: "Disable hold-for-2x", addCurrent: "+ This site", add: "Add", strong: "Strong",
+    del: "Remove", domainPh: "Domain (e.g. nicovideo.jp)", noSites: "No extra sites", permDenied: "Permission was not granted",
+    badDomain: "Invalid domain", ytBuiltin: "YouTube is built in", curNA: "Not available on this tab",
+    noVideo: "No video", notSupported: "Not available on this tab (try reloading it)",
+    strongTip: "Strong mode: for sites that reset the speed", reload: "Reload the tab to apply" }
+};
+const SEEK_OPTS = [1, 2, 3, 5, 10, 15, 30, 60];
+let lang = (navigator.language || "ja").toLowerCase().startsWith("ja") ? "ja" : "en";
+try { const ui = chrome.i18n && chrome.i18n.getUILanguage && chrome.i18n.getUILanguage(); if (ui) lang = ui.toLowerCase().startsWith("ja") ? "ja" : "en"; } catch (e) { /* ignore */ }
+const msg = (k) => (STR[lang] && STR[lang][k]) || STR.en[k] || k;
+let cfg = Object.assign({}, DEFAULTS);
+
+function renderStatic() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-t]").forEach((el) => { el.textContent = msg(el.dataset.t); });
+  document.getElementById("lang").textContent = lang === "ja" ? "EN" : "JA";
+  document.getElementById("lang").title = lang === "ja" ? "English" : "日本語";
+  document.getElementById("domainIn").placeholder = msg("domainPh");
+  const sel = document.getElementById("seekSec"), opts = SEEK_OPTS.slice();
+  const cur = Number(cfg.seekSec) || 5; if (!opts.includes(cur)) { opts.push(cur); opts.sort((a, b) => a - b); }
+  sel.textContent = "";
+  for (const n of opts) { const o = document.createElement("option"); o.value = String(n); o.textContent = "±" + n + msg("sec"); sel.appendChild(o); }
+  sel.value = String(cur);
+  renderCurrent(); renderSites();
+  document.querySelectorAll(".status").forEach((el) => { if (el.dataset.k) el.textContent = msg(el.dataset.k); });
+}
+const setStatus = (el, k) => { el.dataset.k = k || ""; el.textContent = k ? msg(k) : ""; };
+
+document.getElementById("lang").addEventListener("click", () => {
+  lang = lang === "ja" ? "en" : "ja";
+  chrome.storage.local.set({ uiLang: lang });
+  renderStatic();
+});
 
 chrome.storage.local.get(null, (s) => {
-  const c = Object.assign({}, DEFAULTS, s || {});
+  s = s || {};
+  if (s.uiLang === "ja" || s.uiLang === "en") lang = s.uiLang;
+  cfg = Object.assign({}, DEFAULTS, s);
+  renderStatic();
   for (const k of Object.keys(DEFAULTS)) {
     const el = document.getElementById(k);
     if (!el) continue;
-    if (el.type === "checkbox") el.checked = !!c[k];
-    else el.value = String(c[k]);
+    if (el.type === "checkbox") el.checked = !!cfg[k];
+    else el.value = String(cfg[k]);
     el.addEventListener("change", () => {
-      let v;
-      if (el.type === "checkbox") v = el.checked;
-      else {
-        v = Number(el.value);
-        if (k === "seekSec") { v = Math.min(600, Math.max(1, Math.round(v) || 5)); el.value = v; }
-        if (k === "speedStep" && !(v > 0)) v = 0.25;
-      }
+      let v = el.type === "checkbox" ? el.checked : Number(el.value);
+      if (k === "seekSec" && !(v >= 1)) v = 5;
+      if (k === "speedStep" && !(v > 0)) v = 0.25;
+      cfg[k] = v;
       chrome.storage.local.set({ [k]: v });
     });
   }
 });
 
 // ---- extra sites whitelist ----
-const api = typeof browser !== "undefined" ? browser : chrome;
 const MULTI_SLD = /^(co|or|ne|ac|go|ed|gr|lg|ad|com|net|org|gov|edu)$/;
 function siteDomain(host) {
   host = host.toLowerCase().replace(/\.$/, "");
@@ -47,32 +85,36 @@ function normalizeInput(s) {
 }
 const isYT = (d) => /(^|\.)(youtube\.com|youtube-nocookie\.com)$/.test(d);
 const originsFor = (d) => ["*://" + d + "/*", "*://*." + d + "/*"];
-let sites = [];
+let sites = [], curDomain = "";
 const statusEl = document.getElementById("status");
-const say = (k) => { statusEl.textContent = k ? msg(k) : ""; };
+const say = (k) => setStatus(statusEl, k);
 
-function render() {
+function renderSites() {
   const ul = document.getElementById("siteList");
   ul.textContent = "";
-  if (!sites.length) { const li = document.createElement("li"); li.textContent = msg("noSites"); ul.appendChild(li); return; }
+  if (!sites.length) { const li = document.createElement("li"); li.className = "empty"; li.textContent = msg("noSites"); ul.appendChild(li); return; }
   sites.forEach((s, i) => {
     const li = document.createElement("li");
     const d = document.createElement("span"); d.className = "d"; d.textContent = s.domain; d.title = s.domain;
-    const lb = document.createElement("label"); const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!s.strong;
-    cb.className = "strong"; cb.addEventListener("change", () => { sites[i] = Object.assign({}, s, { strong: cb.checked }); save(); });
+    const lb = document.createElement("label"); lb.title = msg("strongTip");
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!s.strong; cb.className = "strong";
+    cb.addEventListener("change", () => { sites[i] = Object.assign({}, s, { strong: cb.checked }); save(); say("reload"); });
     lb.append(cb, document.createTextNode(msg("strong")));
-    const del = document.createElement("button"); del.type = "button"; del.className = "del"; del.textContent = msg("del");
+    const del = document.createElement("button"); del.type = "button"; del.className = "del"; del.textContent = "×"; del.title = msg("del");
     del.addEventListener("click", () => {
       sites.splice(i, 1); save();
-      // drop the host permission unless another entry still needs it
       try { api.permissions.remove({ origins: originsFor(s.domain) }); } catch (e) { /* ignore */ }
     });
     li.append(d, lb, del); ul.appendChild(li);
   });
 }
-function save() { chrome.storage.local.set({ sites: sites.slice() }); render(); }
-
-// Must call permissions.request synchronously inside the click handler (user gesture).
+function save() { chrome.storage.local.set({ sites: sites.slice() }); renderSites(); }
+function renderCurrent() {
+  const b = document.getElementById("addCurrent");
+  b.textContent = curDomain ? msg("addCurrent") + "  " + curDomain : msg("addCurrent");
+  b.disabled = !curDomain; b.title = curDomain ? "" : msg("curNA");
+}
+// permissions.request must be called synchronously inside the click handler (user gesture).
 function addDomain(d) {
   say("");
   if (!d) return say("badDomain");
@@ -82,27 +124,24 @@ function addDomain(d) {
   try { p = api.permissions.request({ origins: originsFor(d) }); } catch (e) { return say("permDenied"); }
   Promise.resolve(p).then((ok) => {
     if (!ok) return say("permDenied");
-    sites.push({ domain: d, strong: false }); save();
+    sites.push({ domain: d, strong: false }); save(); say("reload");
   }, () => say("permDenied"));
 }
-let curDomain = "";
 document.getElementById("addCurrent").addEventListener("click", () => addDomain(curDomain));
 document.getElementById("addBtn").addEventListener("click", () => {
   const el = document.getElementById("domainIn"); const d = normalizeInput(el.value);
   addDomain(d); if (d) el.value = "";
 });
-document.getElementById("domainIn").placeholder = msg("domainPh");
-chrome.storage.local.get("sites", (s) => { sites = Array.isArray(s && s.sites) ? s.sites : []; render(); });
+chrome.storage.local.get("sites", (s) => { sites = Array.isArray(s && s.sites) ? s.sites : []; renderSites(); });
 (async () => {
-  const btn = document.getElementById("addCurrent");
   try {
     const [tab] = await api.tabs.query({ active: true, currentWindow: true });
     const u = new URL(tab.url);
     if (!/^https?:$/.test(u.protocol)) throw 0;
-    curDomain = siteDomain(u.hostname);
-    if (isYT(curDomain)) throw 0;
-    document.getElementById("curDomain").textContent = "(" + curDomain + ")";
-  } catch (e) { btn.disabled = true; btn.title = msg("curNA"); }
+    const d = siteDomain(u.hostname);
+    if (!isYT(d)) curDomain = d;
+  } catch (e) { /* not available */ }
+  renderCurrent();
 })();
 
 // ---- preferred speed buttons ----
@@ -129,13 +168,16 @@ async function toTab(msgObj) {
   throw new Error("notSupported");
 }
 document.querySelectorAll("button.preset").forEach((b) => b.addEventListener("click", async () => {
-  pStatus.textContent = "";
+  setStatus(pStatus, "");
   try {
     const r = await toTab({ type: "ytwc-preset", rate: presets[b.dataset.i] });
-    if (!r.ok) pStatus.textContent = msg(r.reason || "noVideo"); else curRate = r.rate;
-  } catch (e) { pStatus.textContent = msg("notSupported"); }
+    if (!r.ok) setStatus(pStatus, r.reason || "noVideo"); else curRate = r.rate;
+  } catch (e) { setStatus(pStatus, "notSupported"); }
   drawPresets();
 }));
+document.getElementById("editP").addEventListener("click", () => {
+  const e = document.getElementById("presetEdit"); e.hidden = !e.hidden;
+});
 document.querySelectorAll(".presetIn").forEach((el) => el.addEventListener("change", () => {
   let v = Math.round(Number(el.value) * 100) / 100;
   if (!(v >= 0.1 && v <= 16)) v = PRESET_DEFAULT[el.dataset.i];
