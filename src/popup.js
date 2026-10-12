@@ -6,14 +6,14 @@ const DEFAULTS = {
 };
 // Own string table so the language can be switched at runtime (_locales cannot).
 const STR = {
-  ja: { enabled: "有効", speedOn: "左: 速度", seekOn: "右: シーク", invert: "反転", sec: "秒",
-    middleReset: "左＋中クリックで1x", blockHold: "長押し2倍速を無効", addCurrent: "＋ このサイト", add: "追加", strong: "強力",
+  ja: { enabled: "アドオンを有効にする", speedOn: "左ホールド + ホイールで速度変更", seekOn: "右ホールド + ホイールでシーク", invert: "反転", sec: "秒",
+    middleReset: "左ホールド + 中クリックで1倍速に戻す", blockHold: "YouTubeの長押し2倍速を無効化", addCurrent: "現在のサイトを追加", add: "追加", strong: "強力",
     del: "削除", domainPh: "ドメイン（例: nicovideo.jp）", noSites: "追加サイトなし", permDenied: "権限が許可されませんでした",
     badDomain: "ドメインが正しくありません", ytBuiltin: "YouTubeは標準で対象です", curNA: "このタブでは使えません",
     noVideo: "動画がありません", notSupported: "このタブでは使えません（再読み込みで有効になる場合があります）",
     strongTip: "強力モード: サイトが速度を戻す場合に使用", reload: "タブを再読み込みすると有効になります" },
-  en: { enabled: "Enabled", speedOn: "Left: speed", seekOn: "Right: seek", invert: "Invert", sec: " s",
-    middleReset: "Left+middle click = 1x", blockHold: "Disable hold-for-2x", addCurrent: "+ This site", add: "Add", strong: "Strong",
+  en: { enabled: "Enable add-on", speedOn: "Hold left + wheel: change speed", seekOn: "Hold right + wheel: seek", invert: "Invert", sec: "s",
+    middleReset: "Hold left + middle click: reset to 1x", blockHold: "Disable YouTube's hold-for-2x", addCurrent: "Add current site", add: "Add", strong: "Strong",
     del: "Remove", domainPh: "Domain (e.g. nicovideo.jp)", noSites: "No extra sites", permDenied: "Permission was not granted",
     badDomain: "Invalid domain", ytBuiltin: "YouTube is built in", curNA: "Not available on this tab",
     noVideo: "No video", notSupported: "Not available on this tab (try reloading it)",
@@ -34,7 +34,7 @@ function renderStatic() {
   const sel = document.getElementById("seekSec"), opts = SEEK_OPTS.slice();
   const cur = Number(cfg.seekSec) || 5; if (!opts.includes(cur)) { opts.push(cur); opts.sort((a, b) => a - b); }
   sel.textContent = "";
-  for (const n of opts) { const o = document.createElement("option"); o.value = String(n); o.textContent = "±" + n + msg("sec"); sel.appendChild(o); }
+  for (const n of opts) { const o = document.createElement("option"); o.value = String(n); o.textContent = String(n); sel.appendChild(o); }
   sel.value = String(cur);
   renderCurrent(); renderSites();
   document.querySelectorAll(".status").forEach((el) => { if (el.dataset.k) el.textContent = msg(el.dataset.k); });
@@ -100,7 +100,7 @@ function renderSites() {
     const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!s.strong; cb.className = "strong";
     cb.addEventListener("change", () => { sites[i] = Object.assign({}, s, { strong: cb.checked }); save(); say("reload"); });
     lb.append(cb, document.createTextNode(msg("strong")));
-    const del = document.createElement("button"); del.type = "button"; del.className = "del"; del.textContent = "×"; del.title = msg("del");
+    const del = document.createElement("button"); del.type = "button"; del.className = "del"; del.textContent = msg("del");
     del.addEventListener("click", () => {
       sites.splice(i, 1); save();
       try { api.permissions.remove({ origins: originsFor(s.domain) }); } catch (e) { /* ignore */ }
@@ -111,8 +111,7 @@ function renderSites() {
 function save() { chrome.storage.local.set({ sites: sites.slice() }); renderSites(); }
 function renderCurrent() {
   const b = document.getElementById("addCurrent");
-  b.textContent = curDomain ? msg("addCurrent") + "  " + curDomain : msg("addCurrent");
-  b.disabled = !curDomain; b.title = curDomain ? "" : msg("curNA");
+  b.disabled = !curDomain; b.title = curDomain || msg("curNA");
 }
 // permissions.request must be called synchronously inside the click handler (user gesture).
 function addDomain(d) {
@@ -139,7 +138,7 @@ chrome.storage.local.get("sites", (s) => { sites = Array.isArray(s && s.sites) ?
     const u = new URL(tab.url);
     if (!/^https?:$/.test(u.protocol)) throw 0;
     const d = siteDomain(u.hostname);
-    if (!isYT(d)) curDomain = d;
+    if (!isYT(d)) { curDomain = d; const inp = document.getElementById("domainIn"); if (!inp.value) inp.value = d; }
   } catch (e) { /* not available */ }
   renderCurrent();
 })();

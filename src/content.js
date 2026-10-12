@@ -127,8 +127,18 @@
   const opts = { capture: true };
   const optsActive = { capture: true, passive: false };
 
+  let holdCancel = null;
+  function cancelHold() {
+    const h = holdCancel; if (!h) return; holdCancel = null;
+    document.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true, composed: true, button: 0, buttons: 0, clientX: h.x, clientY: h.y, view: window }));
+  }
+  // runs after the page's own mousedown handlers (bubble phase on window); setTimeout above is the fallback
+  window.addEventListener("mousedown", (e) => { if (e.isTrusted && e.button === 0) cancelHold(); }, false);
+
   window.addEventListener("mousedown", (e) => {
-    if (!cfg.enabled || !e.isTrusted) return;
+    if (!e.isTrusted) return;
+    if (e.button === 0) st.suppressClickUntil = 0; // never carry a stale "drop next click" into a new press
+    if (!cfg.enabled) return;
     if (e.button === 1 && st.left && cfg.middleReset && cfg.speedOn) {
       e.preventDefault(); e.stopImmediatePropagation();
       st.left.used = true;
@@ -139,10 +149,12 @@
     if (!s) return;
     if (e.button === 0) {
       st.left = { player: s.player, video: s.video, used: false, t0: e.timeStamp };
-      // YouTube starts its 500 ms "hold = 2x" timer from a mousedown listener on the player root.
-      // Swallowing mousedown here (window, capture) means that listener never runs. The default
-      // action is NOT prevented, so focus/click/dblclick still happen normally.
-      if (IS_YT && cfg.blockHold) e.stopImmediatePropagation();
+      // YouTube's hold-for-2x: its drag helper (g.mj) starts a 500 ms timer on mousedown and cancels it on
+      // dragend (mouseup on document). v1.0-1.3 swallowed the mousedown, but YouTube's click handler ignores
+      // clicks while Rd.RI is set, and RI is only cleared by the player's own mousedown handler, so after
+      // seek-bar scrubbing / spacebar-hold every click on the video was ignored. Now the mousedown reaches
+      // YouTube normally, and right after it we end the drag with a synthetic mouseup -> no 2x timer.
+      if (IS_YT && cfg.blockHold) { holdCancel = { x: e.clientX, y: e.clientY }; setTimeout(cancelHold, 0); }
     } else if (e.button === 2) {
       st.right = { player: s.player, video: s.video, used: false, deferred: false, target: e.target, x: e.clientX, y: e.clientY, sx: e.screenX, sy: e.screenY };
     }
@@ -155,8 +167,8 @@
   window.addEventListener("mouseup", (e) => {
     if (!e.isTrusted) return;
     if (e.button === 0 && st.left) {
-      // wheel used, or a long press (would have been YouTube's 2x hold): don't let the click pause
-      if (st.left.used || (IS_YT && cfg.blockHold && e.timeStamp - st.left.t0 > 500)) st.suppressClickUntil = e.timeStamp + 600;
+      // only a press during which the wheel / middle button was used swallows its click
+      if (st.left.used) st.suppressClickUntil = e.timeStamp + 600;
       st.left = null;
     } else if (e.button === 2 && st.right) {
       const r = st.right;

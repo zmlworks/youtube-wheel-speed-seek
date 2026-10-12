@@ -10,16 +10,16 @@ main { padding: 10px 12px; display: flex; flex-direction: column; gap: 7px; }
 .row { display: flex; align-items: center; gap: 6px; }
 .grow { flex: 1; }
 label { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
-[hidden] { display: none !important; } #speedStep, #seekSec { width: 84px; flex: none; } select, input[type=number], input[type=text] { background: #24221f; color: #f3efe6; border: 1px solid #4a463f; border-radius: 4px; padding: 2px 4px; font: inherit; }
+[hidden] { display: none !important; } #speedStep, #seekSec { width: 70px; flex: none; text-align: right; } .row.sub { padding-left: 24px; margin-top: -3px; } select, input[type=number], input[type=text] { background: #24221f; color: #f3efe6; border: 1px solid #4a463f; border-radius: 4px; padding: 2px 4px; font: inherit; }
 input[type=number] { width: 0; flex: 1; }
 input[type=text] { flex: 1; min-width: 0; }
 button { background: #2d2a25; color: #f3efe6; border: 1px solid #4a463f; border-radius: 4px; padding: 3px 8px; font: inherit; cursor: pointer; }
 button:disabled { opacity: .45; cursor: default; }
 #lang { font-size: 11px; padding: 2px 6px; font-weight: 700; }
-.presets > button { flex: 1; font-size: 15px; font-weight: 700; padding: 6px 0; }
+.presets > button { flex: 1; font-size: 13px; font-weight: 700; padding: 3px 0; } .presets { padding-left: 24px; }
 button.preset.cur { background: #8f1d2a; border-color: #d9485a; }
-#editP { flex: 0 0 auto; padding: 6px 7px; font-size: 13px; }
-hr { border: 0; border-top: 1px solid #33302b; margin: 1px 0; width: 100%; }
+#editP { flex: 0 0 auto; padding: 3px 8px; font-size: 13px; }
+hr { border: 0; border-top: 1px solid #3a3731; margin: 1px 0; width: 100%; }
 ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
 li { display: flex; align-items: center; gap: 6px; background: #1e1c19; border-radius: 4px; padding: 3px 6px; }
 li .d { flex: 1; overflow: hidden; text-overflow: ellipsis; }
@@ -32,23 +32,24 @@ li.empty { color: #8a8478; background: none; padding: 0; }
 <body>
 <main>
   <div class="row"><label class="grow"><input type="checkbox" id="enabled" /><span data-t="enabled"></span></label><button id="lang" type="button"></button></div>
+  <hr />
+  <label><input type="checkbox" id="speedOn" /><span data-t="speedOn"></span></label>
+  <div class="row sub"><select id="speedStep"><option value="0.05">0.05</option><option value="0.1">0.1</option><option value="0.25">0.25</option><option value="0.5">0.5</option></select>
+    <span class="grow"></span><label><span data-t="invert"></span><input type="checkbox" id="invertSpeed" /></label></div>
+  <label><input type="checkbox" id="middleReset" /><span data-t="middleReset"></span></label>
   <div class="row presets"><button type="button" class="preset" data-i="0"></button><button type="button" class="preset" data-i="1"></button><button type="button" class="preset" data-i="2"></button><button type="button" id="editP">✎</button></div>
   <div class="row" id="presetEdit" hidden><input type="number" class="presetIn" data-i="0" min="0.1" max="16" step="0.05" /><input type="number" class="presetIn" data-i="1" min="0.1" max="16" step="0.05" /><input type="number" class="presetIn" data-i="2" min="0.1" max="16" step="0.05" /></div>
   <p id="presetStatus" class="status"></p>
   <hr />
-  <div class="row"><select id="speedStep"><option value="0.05">±0.05</option><option value="0.1">±0.1</option><option value="0.25">±0.25</option><option value="0.5">±0.5</option></select>
-    <label><input type="checkbox" id="speedOn" /><span data-t="speedOn"></span></label>
-    <span class="grow"></span><label><input type="checkbox" id="invertSpeed" /><span data-t="invert"></span></label></div>
-  <div class="row"><select id="seekSec"></select>
-    <label><input type="checkbox" id="seekOn" /><span data-t="seekOn"></span></label>
-    <span class="grow"></span><label><input type="checkbox" id="invertSeek" /><span data-t="invert"></span></label></div>
-  <div class="row"><label><input type="checkbox" id="middleReset" /><span data-t="middleReset"></span></label></div>
-  <div class="row"><label><input type="checkbox" id="blockHold" /><span data-t="blockHold"></span></label></div>
+  <label><input type="checkbox" id="seekOn" /><span data-t="seekOn"></span></label>
+  <div class="row sub"><select id="seekSec"></select><span data-t="sec"></span>
+    <span class="grow"></span><label><span data-t="invert"></span><input type="checkbox" id="invertSeek" /></label></div>
   <hr />
-  <div class="row"><button id="addCurrent" type="button" class="grow"></button></div>
+  <button id="addCurrent" type="button" data-t="addCurrent"></button>
   <div class="row"><input type="text" id="domainIn" /><button id="addBtn" type="button" data-t="add"></button></div>
   <ul id="siteList"></ul>
   <p id="status" class="status"></p>
+  <label><input type="checkbox" id="blockHold" /><span data-t="blockHold"></span></label>
 </main>
 <script src="popup.js"></script>
 </body>
