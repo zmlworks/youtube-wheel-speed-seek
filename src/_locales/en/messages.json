@@ -1,0 +1,41 @@
+{
+ "extName": {
+  "message": "YouTube Wheel Speed & Seek"
+ },
+ "extDesc": {
+  "message": "Hold a mouse button and scroll on YouTube to change speed or seek. Disables press-and-hold 2x."
+ },
+ "title": {
+  "message": "Wheel control"
+ },
+ "enabled": {
+  "message": "Enabled"
+ },
+ "speedOn": {
+  "message": "Left button + wheel: speed"
+ },
+ "speedStep": {
+  "message": "Speed step"
+ },
+ "seekOn": {
+  "message": "Right button + wheel: seek"
+ },
+ "seekSec": {
+  "message": "Seek seconds per notch"
+ },
+ "invertSpeed": {
+  "message": "Invert speed direction (default: up = faster)"
+ },
+ "invertSeek": {
+  "message": "Invert seek direction (default: down = forward)"
+ },
+ "blockHold": {
+  "message": "Disable YouTube press-and-hold 2x"
+ },
+ "middleReset": {
+  "message": "Left button + middle click: reset to 1x"
+ },
+ "note": {
+  "message": "Hold a button over the video and turn the wheel."
+ }
+}

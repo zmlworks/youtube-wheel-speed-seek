@@ -1,0 +1,41 @@
+{
+ "extName": {
+  "message": "YouTube ホイール速度・シーク"
+ },
+ "extDesc": {
+  "message": "YouTubeでボタンを押しながらホイール操作で再生速度とシークを調整。長押し2倍速を無効化。"
+ },
+ "title": {
+  "message": "ホイール操作"
+ },
+ "enabled": {
+  "message": "有効"
+ },
+ "speedOn": {
+  "message": "左ボタン＋ホイールで速度変更"
+ },
+ "speedStep": {
+  "message": "速度の刻み"
+ },
+ "seekOn": {
+  "message": "右ボタン＋ホイールでシーク"
+ },
+ "seekSec": {
+  "message": "シーク秒数（1ノッチ）"
+ },
+ "invertSpeed": {
+  "message": "速度のホイール方向を反転（標準: 上で速く）"
+ },
+ "invertSeek": {
+  "message": "シークのホイール方向を反転（標準: 下で進む）"
+ },
+ "blockHold": {
+  "message": "YouTubeの長押し2倍速を無効化"
+ },
+ "middleReset": {
+  "message": "左ボタン＋中クリックで1倍速に戻す"
+ },
+ "note": {
+  "message": "動画の上でボタンを押したままホイールを回します。"
+ }
+}

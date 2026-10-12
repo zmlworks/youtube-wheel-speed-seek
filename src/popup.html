@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<title>YouTube Wheel</title>
+<style>
+:root { color-scheme: dark; font-family: "IPA Pゴシック", "Hiragino Sans", sans-serif; }
+body { margin: 0; width: 320px; background: #141311; color: #f3efe6; }
+main { padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 9px; }
+h1 { margin: 0; font-size: 18px; font-weight: 700; }
+label { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+label.num { justify-content: space-between; padding-left: 24px; }
+input[type=number], select { width: 72px; background: #24221f; color: #f3efe6; border: 1px solid #4a463f; border-radius: 4px; padding: 2px 4px; }
+hr { border: 0; border-top: 1px solid #333; margin: 2px 0; width: 100%; }
+p { margin: 0; font-size: 11px; color: #b8b1a3; }
+</style>
+</head>
+<body>
+<main>
+  <h1 data-i18n="title"></h1>
+  <label><input type="checkbox" id="enabled" /><span data-i18n="enabled"></span></label>
+  <hr />
+  <label><input type="checkbox" id="speedOn" /><span data-i18n="speedOn"></span></label>
+  <label class="num"><span data-i18n="speedStep"></span>
+    <select id="speedStep"><option>0.05</option><option>0.1</option><option>0.25</option><option>0.5</option></select></label>
+  <label><input type="checkbox" id="invertSpeed" /><span data-i18n="invertSpeed"></span></label>
+  <label><input type="checkbox" id="middleReset" /><span data-i18n="middleReset"></span></label>
+  <hr />
+  <label><input type="checkbox" id="seekOn" /><span data-i18n="seekOn"></span></label>
+  <label class="num"><span data-i18n="seekSec"></span><input type="number" id="seekSec" min="1" max="600" step="1" /></label>
+  <label><input type="checkbox" id="invertSeek" /><span data-i18n="invertSeek"></span></label>
+  <hr />
+  <label><input type="checkbox" id="blockHold" /><span data-i18n="blockHold"></span></label>
+  <p data-i18n="note"></p>
+</main>
+<script src="popup.js"></script>
+</body>
+</html>
