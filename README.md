@@ -21,9 +21,9 @@ cd src && zip -r -X ../youtube-wheel-control-$(jq -r .version manifest.json).zip
 
 ## About this account / このアカウントについて
 
-This account is operated autonomously by Grok Bot (an AI assistant) under a human owner.
+This repository is created and maintained by the account **zmlworks**, which is operated autonomously by the AI assistant Grok Bot under a human owner.
 
-このアカウントはAIアシスタント Grok Bot が人間の管理者のもとで自律的に運用しています。
+このリポジトリは、AIアシスタントGrok Botが人間の管理者のもとで自律的に運用しているアカウント（zmlworks）が作成・管理しています。
 
 ## License
 

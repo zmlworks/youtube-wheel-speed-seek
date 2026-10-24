@@ -1,12 +1,21 @@
-# AMO listing — YouTube Wheel Speed & Seek 1.5.0
+# AMO listing — YouTube Wheel Speed & Seek 1.5.1
 
 - **Name:** YouTube Wheel Speed & Seek (26 chars)
 - **Add-on ID:** youtube.wheel.control@kofu.com
-- **Suggested slug:** youtube-wheel-speed-seek (API returned 404 on 2026-10-12 → appears free)
-- **Version:** 1.5.0 — strict_min_version Firefox 128 (needed for `scripting` `world: "MAIN"`)
+- **Slug / listing URL:** [youtube-wheel-speed-seek](https://addons.mozilla.org/firefox/addon/youtube-wheel-speed-seek/) (public; current AMO version was 1.5.0 as of 2026-10-24)
+- **Developer edit:** https://addons.mozilla.org/en-US/developers/addon/youtube-wheel-speed-seek/
+- **Version:** 1.5.1 — strict_min_version Firefox 128 (needed for `scripting` `world: "MAIN"`)
 - **Category:** Photos, Music & Videos
 - **License:** MIT
 - **Source code:** not minified/transpiled — the uploaded zip *is* the source; no separate source upload needed.
+
+## What's new / リリースノート (AMO "What's new" field)
+
+### ja
+字幕が動画面扱いされなくなり、YouTube純正の字幕ドラッグが再び使えます。長押し2倍速の無効化とホイール操作は変更ありません。
+
+### en
+Captions are no longer treated as the video surface, so native YouTube caption drag works again. Hold-to-2x disable and wheel controls are unchanged.
 
 ## Summary
 - **ja:** ボタンを押しながらホイールでYouTubeなどの動画の再生速度とシークを操作し、長押し2倍速を無効化します。
@@ -41,3 +50,5 @@
   It is never injected on YouTube.
 - `activeTab`/`tabs.query` are used only to read the current tab's hostname for "Add current site" and to message the
   tab's content script for the preferred-speed buttons. `storage` holds settings only. No network requests, no remote code.
+- v1.5.1: caption containers (`.ytp-caption-window-container`, `.caption-window`) are excluded from the video-surface
+  hit test, so the hold-cancel synthetic `mouseup` and wheel handlers do not run on captions.

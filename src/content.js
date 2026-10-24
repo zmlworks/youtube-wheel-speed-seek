@@ -36,8 +36,10 @@
   } catch (e) { /* storage unavailable */ }
 
   // UI parts of the player where we must not interfere (seek bar, buttons, menus, ads, end screens)
+  // Caption windows are draggable; must not run hold-cancel synthetic mouseup on them
   const UI_SEL = ".ytp-chrome-bottom,.ytp-chrome-top,.ytp-popup,.ytp-settings-menu,.ytp-contextmenu," +
     ".ytp-ce-element,.ytp-cards-teaser,.ytp-videowall-still,.ytp-autonav-endscreen-countdown-overlay," +
+    ".ytp-caption-window-container,.caption-window," +
     "button,a,input,select,textarea,[role=button],[role=slider],.ytp-ad-overlay-container,.ytp-paid-content-overlay";
   const PLAYER_SEL = "#movie_player,.html5-video-player";
 
