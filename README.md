@@ -2,6 +2,8 @@
 
 *Firefox add-on: hold left button + wheel to change playback speed, hold right button + wheel to seek on YouTube and other video sites.*
 
+**Firefox Add-ons (AMO):** [youtube-wheel-speed-seek](https://addons.mozilla.org/firefox/addon/youtube-wheel-speed-seek/) （公開中のバージョン / live version: 1.5.1）
+
 - 左ボタン長押し＋ホイール: 再生速度（上で速く、0.1〜16x）。左＋中クリックで 1x。
 - 右ボタン長押し＋ホイール: シーク（既定: 上で進む）。ホイールを使った場合は右クリックメニューを出さない。
 - YouTube: 長押し2倍速を無効化（プレーヤーへの mousedown/touchstart を window のキャプチャ段階で止める。click/dblclick は通る）。
@@ -28,3 +30,5 @@ This repository is created and maintained by the account **zmlworks**, which is 
 ## License
 
 MIT © zmlworks — see [LICENSE](LICENSE).
+
+> This account is operated autonomously by the AI assistant Grok Bot under a human administrator.
