@@ -2,24 +2,33 @@
 const api = typeof browser !== "undefined" ? browser : chrome;
 const DEFAULTS = {
   enabled: true, speedOn: true, seekOn: true, blockHold: true, middleReset: true,
-  speedStep: 0.25, seekSec: 5, invertSpeed: false, invertSeek: false
+  speedStep: 0.25, seekSec: 5, invertSpeed: false, invertSeek: false, swapButtons: false,
+  abOn: true, abKeyA: "[", abKeyB: "]", abKeyClear: "\\"
 };
 // Own string table so the language can be switched at runtime (_locales cannot).
 const STR = {
   ja: { enabled: "アドオンを有効にする", speedOn: "左ホールド + ホイールで速度変更", seekOn: "右ホールド + ホイールでシーク", invert: "反転", sec: "秒",
-    middleReset: "左ホールド + 中クリックで1倍速に戻す", blockHold: "YouTubeの長押し2倍速を無効化", addCurrent: "現在のサイトを追加", add: "追加", strong: "強力",
+    middleReset: "左ホールド + 中クリックで1倍速に戻す", blockHold: "YouTubeの長押し2倍速を無効化", add: "追加", strong: "強力",
+    speedOnR: "右ホールド + ホイールで速度変更", seekOnL: "左ホールド + ホイールでシーク", middleResetR: "右ホールド + 中クリックで1倍速に戻す",
+    swapButtons: "左右反転", abOn: "区間リピート (A-B)", abKeyA: "A点を設定", abKeyB: "B点を設定（リピート開始）", abKeyClear: "区間リピート解除",
+    keyUnset: "未設定", keyHint: "クリックしてキーを押す（Backspaceで未設定）",
     del: "削除", domainPh: "ドメイン（例: nicovideo.jp）", noSites: "追加サイトなし", permDenied: "権限が許可されませんでした",
-    badDomain: "ドメインが正しくありません", ytBuiltin: "YouTubeは標準で対象です", curNA: "このタブでは使えません",
+    badDomain: "ドメインが正しくありません", ytBuiltin: "YouTubeは標準で対象です",
     noVideo: "動画がありません", notSupported: "このタブでは使えません（再読み込みで有効になる場合があります）",
     strongTip: "強力モード: サイトが速度を戻す場合に使用", reload: "タブを再読み込みすると有効になります" },
   en: { enabled: "Enable add-on", speedOn: "Hold left + wheel: change speed", seekOn: "Hold right + wheel: seek", invert: "Invert", sec: "s",
-    middleReset: "Hold left + middle click: reset to 1x", blockHold: "Disable YouTube's hold-for-2x", addCurrent: "Add current site", add: "Add", strong: "Strong",
+    middleReset: "Hold left + middle click: reset to 1x", blockHold: "Disable YouTube's hold-for-2x", add: "Add", strong: "Strong",
+    speedOnR: "Hold right + wheel: change speed", seekOnL: "Hold left + wheel: seek", middleResetR: "Hold right + middle click: reset to 1x",
+    swapButtons: "Swap left/right buttons", abOn: "A-B section repeat", abKeyA: "Set point A", abKeyB: "Set point B (start loop)", abKeyClear: "Clear A-B repeat",
+    keyUnset: "Not set", keyHint: "Click, then press a key (Backspace: unset)",
     del: "Remove", domainPh: "Domain (e.g. nicovideo.jp)", noSites: "No extra sites", permDenied: "Permission was not granted",
-    badDomain: "Invalid domain", ytBuiltin: "YouTube is built in", curNA: "Not available on this tab",
+    badDomain: "Invalid domain", ytBuiltin: "YouTube is built in",
     noVideo: "No video", notSupported: "Not available on this tab (try reloading it)",
     strongTip: "Strong mode: for sites that reset the speed", reload: "Reload the tab to apply" }
 };
-const SEEK_OPTS = [1, 2, 3, 5, 10, 15, 30, 60];
+// typed numeric settings: [min, max, decimals]; invalid input restores the saved value (nothing is written)
+const NUM_RANGE = { speedStep: [0.01, 4, 2], seekSec: [0.5, 3600, 1] };
+const KEY_IDS = ["abKeyA", "abKeyB", "abKeyClear"];
 let lang = (navigator.language || "ja").toLowerCase().startsWith("ja") ? "ja" : "en";
 try { const ui = chrome.i18n && chrome.i18n.getUILanguage && chrome.i18n.getUILanguage(); if (ui) lang = ui.toLowerCase().startsWith("ja") ? "ja" : "en"; } catch (e) { /* ignore */ }
 const msg = (k) => (STR[lang] && STR[lang][k]) || STR.en[k] || k;
@@ -31,13 +40,26 @@ function renderStatic() {
   document.getElementById("lang").textContent = lang === "ja" ? "EN" : "JA";
   document.getElementById("lang").title = lang === "ja" ? "English" : "日本語";
   document.getElementById("domainIn").placeholder = msg("domainPh");
-  const sel = document.getElementById("seekSec"), opts = SEEK_OPTS.slice();
-  const cur = Number(cfg.seekSec) || 5; if (!opts.includes(cur)) { opts.push(cur); opts.sort((a, b) => a - b); }
-  sel.textContent = "";
-  for (const n of opts) { const o = document.createElement("option"); o.value = String(n); o.textContent = String(n); sel.appendChild(o); }
-  sel.value = String(cur);
-  renderCurrent(); renderSites();
+  renderSwap(); renderKeys(); renderSites();
   document.querySelectorAll(".status").forEach((el) => { if (el.dataset.k) el.textContent = msg(el.dataset.k); });
+}
+// labels follow the swap setting (middle reset follows the speed button)
+function renderSwap() {
+  const sw = !!cfg.swapButtons;
+  const set = (id, k) => { const el = document.querySelector("#" + id + " + span"); el.dataset.t = k; el.textContent = msg(k); };
+  set("speedOn", sw ? "speedOnR" : "speedOn"); set("seekOn", sw ? "seekOnL" : "seekOn"); set("middleReset", sw ? "middleResetR" : "middleReset");
+}
+function renderKeys() {
+  for (const id of KEY_IDS) { const el = document.getElementById(id); el.value = cfg[id] || ""; el.placeholder = msg("keyUnset"); el.title = msg("keyHint"); }
+}
+// must match content.js keyName()
+function keyName(e) {
+  let k = e.key;
+  if (!k || k === "Unidentified" || k === "Dead" || k === "Process" || /^(Shift|Control|Alt|Meta|OS|AltGraph|CapsLock)$/.test(k)) return "";
+  if (k === " ") k = "Space";
+  const letter = k.length === 1 && /[a-z]/i.test(k), named = k.length > 1;
+  if (letter) k = k.toUpperCase();
+  return (e.ctrlKey ? "Ctrl+" : "") + (e.altKey ? "Alt+" : "") + (e.metaKey ? "Meta+" : "") + (e.shiftKey && (letter || named) ? "Shift+" : "") + k;
 }
 const setStatus = (el, k) => { el.dataset.k = k || ""; el.textContent = k ? msg(k) : ""; };
 
@@ -55,17 +77,41 @@ chrome.storage.local.get(null, (s) => {
   for (const k of Object.keys(DEFAULTS)) {
     const el = document.getElementById(k);
     if (!el) continue;
+    if (KEY_IDS.includes(k)) { bindKey(el, k); continue; }
     if (el.type === "checkbox") el.checked = !!cfg[k];
     else el.value = String(cfg[k]);
     el.addEventListener("change", () => {
       let v = el.type === "checkbox" ? el.checked : Number(el.value);
-      if (k === "seekSec" && !(v >= 1)) v = 5;
-      if (k === "speedStep" && !(v > 0)) v = 0.25;
+      if (NUM_RANGE[k]) {
+        const [lo, hi, dec] = NUM_RANGE[k], raw = el.value.trim().replace(/,/g, ".");
+        v = raw === "" ? NaN : Number(raw);
+        if (isFinite(v)) v = Math.round(v * 10 ** dec) / 10 ** dec;
+        if (!(isFinite(v) && v >= lo && v <= hi)) { el.value = String(cfg[k]); return; } // keep the saved value
+        el.value = String(v);
+      }
       cfg[k] = v;
       chrome.storage.local.set({ [k]: v });
+      if (k === "swapButtons") renderSwap();
     });
   }
 });
+
+// key capture fields: click, then press a key; Backspace/Delete/Esc = unset; Tab moves focus
+function bindKey(el, k) {
+  el.addEventListener("keydown", (e) => {
+    if (e.key === "Tab" && !e.ctrlKey && !e.altKey && !e.metaKey) return;
+    e.preventDefault(); e.stopPropagation();
+    let name;
+    if (!e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey && (e.key === "Backspace" || e.key === "Delete" || e.key === "Escape")) name = "";
+    else { name = keyName(e); if (!name) return; }
+    const upd = { [k]: name };
+    // one key, one action: a key already used by another A-B action is taken away from it
+    if (name) for (const o of KEY_IDS) if (o !== k && cfg[o] === name) upd[o] = "";
+    Object.assign(cfg, upd);
+    chrome.storage.local.set(upd);
+    renderKeys();
+  });
+}
 
 // ---- extra sites whitelist ----
 const MULTI_SLD = /^(co|or|ne|ac|go|ed|gr|lg|ad|com|net|org|gov|edu)$/;
@@ -85,7 +131,7 @@ function normalizeInput(s) {
 }
 const isYT = (d) => /(^|\.)(youtube\.com|youtube-nocookie\.com)$/.test(d);
 const originsFor = (d) => ["*://" + d + "/*", "*://*." + d + "/*"];
-let sites = [], curDomain = "";
+let sites = [];
 const statusEl = document.getElementById("status");
 const say = (k) => setStatus(statusEl, k);
 
@@ -109,10 +155,6 @@ function renderSites() {
   });
 }
 function save() { chrome.storage.local.set({ sites: sites.slice() }); renderSites(); }
-function renderCurrent() {
-  const b = document.getElementById("addCurrent");
-  b.disabled = !curDomain; b.title = curDomain || msg("curNA");
-}
 // permissions.request must be called synchronously inside the click handler (user gesture).
 function addDomain(d) {
   say("");
@@ -126,7 +168,6 @@ function addDomain(d) {
     sites.push({ domain: d, strong: false }); save(); say("reload");
   }, () => say("permDenied"));
 }
-document.getElementById("addCurrent").addEventListener("click", () => addDomain(curDomain));
 document.getElementById("addBtn").addEventListener("click", () => {
   const el = document.getElementById("domainIn"); const d = normalizeInput(el.value);
   addDomain(d); if (d) el.value = "";
@@ -138,9 +179,8 @@ chrome.storage.local.get("sites", (s) => { sites = Array.isArray(s && s.sites) ?
     const u = new URL(tab.url);
     if (!/^https?:$/.test(u.protocol)) throw 0;
     const d = siteDomain(u.hostname);
-    if (!isYT(d)) { curDomain = d; const inp = document.getElementById("domainIn"); if (!inp.value) inp.value = d; }
+    if (!isYT(d)) { const inp = document.getElementById("domainIn"); if (!inp.value) inp.value = d; }
   } catch (e) { /* not available */ }
-  renderCurrent();
 })();
 
 // ---- preferred speed buttons ----

@@ -5,7 +5,8 @@
 
   const DEFAULTS = {
     enabled: true, speedOn: true, seekOn: true, blockHold: true, middleReset: true,
-    speedStep: 0.25, seekSec: 5, invertSpeed: false, invertSeek: false, sites: []
+    speedStep: 0.25, seekSec: 5, invertSpeed: false, invertSeek: false, swapButtons: false,
+    abOn: true, abKeyA: "[", abKeyB: "]", abKeyClear: "\\", sites: []
   };
   const HOST = location.hostname;
   const IS_YT = /(^|\.)(youtube\.com|youtube-nocookie\.com)$/.test(HOST);
@@ -79,6 +80,12 @@
     passMenu: false
   };
 
+  // swapButtons: left = seek, right = speed (middle reset follows the speed button)
+  const speedHold = () => (cfg.swapButtons ? st.right : st.left);
+  const seekHold = () => (cfg.swapButtons ? st.left : st.right);
+  const rightActive = () => (cfg.swapButtons ? cfg.speedOn : cfg.seekOn);
+  const numCfg = (k, def) => { const n = Number(cfg[k]); return isFinite(n) && n > 0 ? n : def; };
+
   // ---- OSD ----
   let osd = null, osdTimer = 0, seekAcc = 0;
   function showOSD(player, text, video) {
@@ -141,10 +148,11 @@
     if (!e.isTrusted) return;
     if (e.button === 0) st.suppressClickUntil = 0; // never carry a stale "drop next click" into a new press
     if (!cfg.enabled) return;
-    if (e.button === 1 && st.left && cfg.middleReset && cfg.speedOn) {
+    const sh = speedHold();
+    if (e.button === 1 && sh && cfg.middleReset && cfg.speedOn) {
       e.preventDefault(); e.stopImmediatePropagation();
-      st.left.used = true;
-      setRate(st.left.video, st.left.player, 1, true);
+      sh.used = true;
+      setRate(sh.video, sh.player, 1, true);
       return;
     }
     const s = surface(e.target, e);
@@ -196,7 +204,7 @@
   }, opts);
 
   window.addEventListener("contextmenu", (e) => {
-    if (st.passMenu || !cfg.enabled || !cfg.seekOn) return;
+    if (st.passMenu || !cfg.enabled || !rightActive()) return;
     if (st.right) {
       // fired while the button is still held (Linux/mac): hold back until we know if wheel is used
       st.right.deferred = true;
@@ -209,29 +217,31 @@
 
   window.addEventListener("wheel", (e) => {
     if (!cfg.enabled) return;
-    const leftHeld = !!st.left, rightHeld = !!st.right;
-    if (leftHeld && cfg.speedOn) {
+    const sh = speedHold(), kh = seekHold();
+    if (sh && cfg.speedOn) {
       e.preventDefault(); e.stopImmediatePropagation();
       const n = notch(e); if (!n) return;
-      st.left.used = true;
+      sh.used = true;
       const dir = (cfg.invertSpeed ? 1 : -1) * n; // default: wheel up (n=-1) = faster
-      const v = st.left.video, step = Number(cfg.speedStep) || 0.25;
+      const v = sh.video, step = numCfg("speedStep", 0.25);
       let r = realRate(v) + dir * step;
-      r = Math.round(r / step) * step || (dir > 0 ? step : MIN_RATE);
-      setRate(v, st.left.player, r);
-    } else if (rightHeld && cfg.seekOn) {
+      // snap to the step grid anchored at 1x (same as before for steps that divide 1; any step value works)
+      r = 1 + Math.round((r - 1) / step) * step;
+      if (!(r > 0)) r = dir > 0 ? step : MIN_RATE;
+      setRate(v, sh.player, r);
+    } else if (kh && cfg.seekOn) {
       e.preventDefault(); e.stopImmediatePropagation();
       const n = notch(e); if (!n) return;
-      st.right.used = true;
+      kh.used = true;
       const dir = (cfg.invertSeek ? 1 : -1) * n; // default (v1.1): wheel up = forward
-      const v = st.right.video, sec = Number(cfg.seekSec) || 5;
+      const v = kh.video, sec = numCfg("seekSec", 5);
       const dur = isFinite(v.duration) ? v.duration : Infinity;
       const cur = v.currentTime;
       const t = Math.min(Math.max(0, cur + dir * sec), Math.max(0, dur - 0.1));
       v.currentTime = t;
       // net seek amount while the OSD stays visible: +5s, +10s, ... reverse subtracts
       seekAcc = Math.round((seekAcc + (t - cur)) * 10) / 10;
-      showOSD(st.right.player, (seekAcc > 0 ? "+" : seekAcc < 0 ? "-" : "±") + Math.abs(seekAcc) + "s", v);
+      showOSD(kh.player, (seekAcc > 0 ? "+" : seekAcc < 0 ? "-" : "±") + Math.abs(seekAcc) + "s", v);
     }
   }, optsActive);
 
@@ -267,6 +277,117 @@
       return false;
     });
   } catch (e) { /* no runtime (tests) */ }
+
+  // ---- A-B section repeat (区間リピート) ----
+  // Key names must match popup.js keyName(): Ctrl/Alt/Meta prefixes; Shift only for letters and named keys
+  // (for symbols the shifted character itself is the name, e.g. "{").
+  function keyName(e) {
+    let k = e.key;
+    if (!k || k === "Unidentified" || k === "Dead" || k === "Process" || /^(Shift|Control|Alt|Meta|OS|AltGraph|CapsLock)$/.test(k)) return "";
+    if (k === " ") k = "Space";
+    const letter = k.length === 1 && /[a-z]/i.test(k), named = k.length > 1;
+    if (letter) k = k.toUpperCase();
+    return (e.ctrlKey ? "Ctrl+" : "") + (e.altKey ? "Alt+" : "") + (e.metaKey ? "Meta+" : "") + (e.shiftKey && (letter || named) ? "Shift+" : "") + k;
+  }
+  const AB_STR = {
+    ja: { loop: "区間リピート", off: "区間リピート解除" },
+    en: { loop: "A-B repeat", off: "A-B repeat off" }
+  };
+  const uiLang = () => {
+    if (cfg.uiLang === "ja" || cfg.uiLang === "en") return cfg.uiLang;
+    try { const l = chrome.i18n.getUILanguage(); if (l) return l.toLowerCase().startsWith("ja") ? "ja" : "en"; } catch (e) { /* ignore */ }
+    return (navigator.language || "").toLowerCase().startsWith("ja") ? "ja" : "en";
+  };
+  const abStr = (k) => AB_STR[uiLang()][k];
+  const fmtTime = (t) => {
+    t = Math.max(0, Math.floor(t));
+    const h = Math.floor(t / 3600), m = Math.floor(t / 60) % 60, sec = String(t % 60).padStart(2, "0");
+    return h ? h + ":" + String(m).padStart(2, "0") + ":" + sec : m + ":" + sec;
+  };
+  let ab = null; // {video, src, a, b, raf}
+  const srcOf = (v) => v.currentSrc || v.src || "";
+  function abReset() {
+    if (!ab) return;
+    const v = ab.video;
+    cancelAnimationFrame(ab.raf);
+    v.removeEventListener("timeupdate", abCheck);
+    v.removeEventListener("ended", abEnded);
+    v.removeEventListener("loadstart", abReset);
+    v.removeEventListener("emptied", abReset);
+    ab = null;
+  }
+  const abLooping = () => ab && ab.a !== null && ab.b !== null;
+  function abCheck() {
+    if (!ab) return;
+    const v = ab.video;
+    if (!v.isConnected || srcOf(v) !== ab.src) { abReset(); return; }
+    if (!cfg.enabled || !cfg.abOn) return;
+    if (abLooping() && !v.seeking && v.currentTime >= ab.b) v.currentTime = ab.a;
+  }
+  function abEnded() {
+    if (!abLooping() || !cfg.enabled || !cfg.abOn) return;
+    ab.video.currentTime = ab.a;
+    try { const p = ab.video.play(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* ignore */ }
+  }
+  function abTick() {
+    if (!abLooping()) return;
+    abCheck();
+    if (ab) ab.raf = requestAnimationFrame(abTick);
+  }
+  function abFor(v) {
+    if (ab && (ab.video !== v || srcOf(v) !== ab.src)) abReset();
+    if (!ab) {
+      ab = { video: v, src: srcOf(v), a: null, b: null, raf: 0 };
+      v.addEventListener("timeupdate", abCheck);
+      v.addEventListener("ended", abEnded);
+      v.addEventListener("loadstart", abReset);
+      v.addEventListener("emptied", abReset);
+    }
+    return ab;
+  }
+  function abSet(which, v) {
+    const player = IS_YT ? playerOf(v) : null;
+    if (which === "clear") {
+      abReset();
+      showOSD(player, abStr("off"), v);
+      return;
+    }
+    const s = abFor(v), t = v.currentTime;
+    s[which] = t;
+    if (which === "b" && s.a === null) s.a = 0;
+    if (s.a !== null && s.b !== null && s.b < s.a) { const x = s.a; s.a = s.b; s.b = x; }
+    if (abLooping()) {
+      showOSD(player, abStr("loop") + " " + fmtTime(s.a) + "–" + fmtTime(s.b), v);
+      cancelAnimationFrame(s.raf); s.raf = requestAnimationFrame(abTick);
+      if (v.currentTime >= s.b || v.currentTime < s.a) v.currentTime = s.a;
+    } else {
+      showOSD(player, (which === "a" ? "A " : "B ") + fmtTime(t), v);
+    }
+  }
+  const isTyping = (e) => {
+    const t = (e.composedPath && e.composedPath()[0]) || e.target;
+    if (!t || t.nodeType !== 1) return false;
+    return /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable;
+  };
+  let abSwallowKey = "";
+  window.addEventListener("keydown", (e) => {
+    if (!e.isTrusted || !cfg.enabled || !cfg.abOn || e.isComposing || isTyping(e)) return;
+    const name = keyName(e); if (!name) return;
+    const which = name === cfg.abKeyA ? "a" : name === cfg.abKeyB ? "b" : name === cfg.abKeyClear ? "clear" : "";
+    if (!which) return;
+    const v = targetVideo(); if (!v) return; // frame without a video: let the key through
+    e.preventDefault(); e.stopImmediatePropagation();
+    abSwallowKey = e.key;
+    if (!e.repeat) abSet(which, v);
+  }, true);
+  const swallowUp = (e) => {
+    if (abSwallowKey && e.key === abSwallowKey) {
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (e.type === "keyup") abSwallowKey = "";
+    }
+  };
+  window.addEventListener("keypress", swallowUp, true);
+  window.addEventListener("keyup", swallowUp, true);
 
   // button released outside the window: drop stale state
   window.addEventListener("mousemove", (e) => {

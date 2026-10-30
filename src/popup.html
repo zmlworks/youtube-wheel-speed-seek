@@ -10,7 +10,7 @@ main { padding: 10px 12px; display: flex; flex-direction: column; gap: 7px; }
 .row { display: flex; align-items: center; gap: 6px; }
 .grow { flex: 1; }
 label { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
-[hidden] { display: none !important; } #speedStep, #seekSec { width: 70px; flex: none; text-align: right; } .row.sub { padding-left: 24px; margin-top: -3px; } select, input[type=number], input[type=text] { background: #24221f; color: #f3efe6; border: 1px solid #4a463f; border-radius: 4px; padding: 2px 4px; font: inherit; }
+[hidden] { display: none !important; } #speedStep, #seekSec { width: 70px; flex: none; text-align: right; } input.key[type=text] { width: 70px; flex: none; text-align: center; cursor: pointer; caret-color: transparent; } input.key:focus { border-color: #d9485a; outline: none; } .hint { margin: 0; font-size: 11px; color: #8a8478; } .row.sub { padding-left: 24px; margin-top: -3px; } select, input[type=number], input[type=text] { background: #24221f; color: #f3efe6; border: 1px solid #4a463f; border-radius: 4px; padding: 2px 4px; font: inherit; }
 input[type=number] { width: 0; flex: 1; }
 input[type=text] { flex: 1; min-width: 0; }
 button { background: #2d2a25; color: #f3efe6; border: 1px solid #4a463f; border-radius: 4px; padding: 3px 8px; font: inherit; cursor: pointer; }
@@ -38,20 +38,26 @@ li.empty { color: #8a8478; background: none; padding: 0; }
   <p id="presetStatus" class="status"></p>
   <hr />
   <label><input type="checkbox" id="speedOn" /><span data-t="speedOn"></span></label>
-  <div class="row sub"><select id="speedStep"><option value="0.05">0.05</option><option value="0.1">0.1</option><option value="0.25">0.25</option><option value="0.5">0.5</option></select>
+  <div class="row sub"><input type="text" id="speedStep" inputmode="decimal" autocomplete="off" />
     <span class="grow"></span><label><span data-t="invert"></span><input type="checkbox" id="invertSpeed" /></label></div>
   <label><input type="checkbox" id="middleReset" /><span data-t="middleReset"></span></label>
 
   <hr />
   <label><input type="checkbox" id="seekOn" /><span data-t="seekOn"></span></label>
-  <div class="row sub"><select id="seekSec"></select><span data-t="sec"></span>
+  <div class="row sub"><input type="text" id="seekSec" inputmode="decimal" autocomplete="off" /><span data-t="sec"></span>
     <span class="grow"></span><label><span data-t="invert"></span><input type="checkbox" id="invertSeek" /></label></div>
   <hr />
-  <button id="addCurrent" type="button" data-t="addCurrent"></button>
-  <div class="row"><input type="text" id="domainIn" /><button id="addBtn" type="button" data-t="add"></button></div>
+  <div class="row"><button id="addBtn" type="button" data-t="add"></button><input type="text" id="domainIn" /></div>
   <ul id="siteList"></ul>
   <p id="status" class="status"></p>
   <label><input type="checkbox" id="blockHold" /><span data-t="blockHold"></span></label>
+  <label><input type="checkbox" id="swapButtons" /><span data-t="swapButtons"></span></label>
+  <hr />
+  <label><input type="checkbox" id="abOn" /><span data-t="abOn"></span></label>
+  <div class="row sub"><span data-t="abKeyA" class="grow"></span><input type="text" class="key" id="abKeyA" readonly /></div>
+  <div class="row sub"><span data-t="abKeyB" class="grow"></span><input type="text" class="key" id="abKeyB" readonly /></div>
+  <div class="row sub"><span data-t="abKeyClear" class="grow"></span><input type="text" class="key" id="abKeyClear" readonly /></div>
+  <p class="row sub hint" data-t="keyHint"></p>
 </main>
 <script src="popup.js"></script>
 </body>

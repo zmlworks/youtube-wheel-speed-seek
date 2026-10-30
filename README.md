@@ -6,6 +6,8 @@
 
 - 左ボタン長押し＋ホイール: 再生速度（上で速く、0.1〜16x）。左＋中クリックで 1x。
 - 右ボタン長押し＋ホイール: シーク（既定: 上で進む）。ホイールを使った場合は右クリックメニューを出さない。
+- 左右反転（1.6.0）: 左ボタン＋ホイールでシーク、右ボタン＋ホイールで速度、右＋中クリックで 1x。
+- 区間リピート（1.6.0）: `[` で A点、`]` で B点（ループ開始）、`\` で解除（ポップアップで変更可）。
 - YouTube: 長押し2倍速を無効化（プレーヤーへの mousedown/touchstart を window のキャプチャ段階で止める。click/dblclick は通る）。
 - 追加サイト: ポップアップで登録。`background.js` が `scripting.registerContentScripts` で content.js（強力モードなら main.js も MAIN world）を登録。
 - 強力モード (`main.js`): `HTMLMediaElement.prototype.playbackRate/defaultPlaybackRate` を包み、アドオン設定中はページには「ページの速度」を返し、
